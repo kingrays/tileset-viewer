@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { CesiumMap, type CesiumMapHandle } from './cesium/CesiumMap';
 import { ControlPanel } from './components/ControlPanel';
+import { ToolDock } from './components/ToolDock';
 import {
   loadServices,
   loadSettings,
@@ -94,12 +95,6 @@ export default function App() {
         onStatusChange={handleStatusChange}
       />
       <ControlPanel
-        tiandituKey={tiandituKey}
-        onSaveKey={handleSaveKey}
-        baseMap={settings.baseMap}
-        onBaseMapChange={(value: BaseMapType) => updateSettings({ baseMap: value })}
-        globeTransparency={settings.globeTransparency}
-        onTransparencyChange={(value) => updateSettings({ globeTransparency: value })}
         services={services}
         statuses={statuses}
         onAddService={handleAddService}
@@ -115,7 +110,15 @@ export default function App() {
         }
         onFlyTo={(id) => mapRef.current?.flyToService(id)}
       />
-      <div className="status-bar">已加载服务 {visibleHint} 个</div>
+      <ToolDock
+        tiandituKey={tiandituKey}
+        onSaveKey={handleSaveKey}
+        baseMap={settings.baseMap}
+        onBaseMapChange={(value: BaseMapType) => updateSettings({ baseMap: value })}
+        globeTransparency={settings.globeTransparency}
+        onTransparencyChange={(value) => updateSettings({ globeTransparency: value })}
+        visibleCount={visibleHint}
+      />
     </div>
   );
 }

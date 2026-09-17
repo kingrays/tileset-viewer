@@ -1,13 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import type { BaseMapType, ServiceStatus, TilesetService } from '../types';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import type { ServiceStatus, TilesetService } from '../types';
 
 interface ControlPanelProps {
-  tiandituKey: string;
-  onSaveKey: (key: string) => void;
-  baseMap: BaseMapType;
-  onBaseMapChange: (value: BaseMapType) => void;
-  globeTransparency: number;
-  onTransparencyChange: (value: number) => void;
   services: TilesetService[];
   statuses: Record<string, ServiceStatus>;
   onAddService: (name: string, url: string) => string | void;
@@ -16,13 +10,8 @@ interface ControlPanelProps {
   onFlyTo: (id: string) => void;
 }
 
+/** 左侧主面板只展示服务列表，添加表单通过按钮弹出 */
 export function ControlPanel({
-  tiandituKey,
-  onSaveKey,
-  baseMap,
-  onBaseMapChange,
-  globeTransparency,
-  onTransparencyChange,
   services,
   statuses,
   onAddService,
@@ -30,19 +19,36 @@ export function ControlPanel({
   onRemoveService,
   onFlyTo,
 }: ControlPanelProps) {
-  const [keyDraft, setKeyDraft] = useState(tiandituKey);
-  const [showKey, setShowKey] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [formError, setFormError] = useState('');
+  const addPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setKeyDraft(tiandituKey);
-  }, [tiandituKey]);
+    if (!addOpen) {
+      return;
+    }
 
-  const handleSaveKey = () => {
-    onSaveKey(keyDraft);
-  };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (addPanelRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setAddOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAddOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [addOpen]);
 
   const handleAdd = (event: FormEvent) => {
     event.preventDefault();
@@ -54,6 +60,7 @@ export function ControlPanel({
     setFormError('');
     setName('');
     setUrl('');
+    setAddOpen(false);
   };
 
   return (
@@ -63,88 +70,62 @@ export function ControlPanel({
         <p>天地图底图 + 三维瓦片服务</p>
       </header>
 
-      <section className="panel-section">
-        <h2>天地图 Key</h2>
-        <label className="field">
-          <span>在天地图控制台申请 tk，保存后写入本地浏览器</span>
-          <div className="key-row">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={keyDraft}
-              onChange={(event) => setKeyDraft(event.target.value)}
-              placeholder="请输入天地图 tk"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button type="button" className="ghost" onClick={() => setShowKey((value) => !value)}>
-              {showKey ? '隐藏' : '显示'}
-            </button>
-          </div>
-        </label>
-        <button type="button" className="primary" onClick={handleSaveKey}>
-          保存 Key
-        </button>
-        {!tiandituKey && <p className="hint warn">尚未配置 Key，底图不会显示。</p>}
-      </section>
+      <section className="panel-section panel-list">
+        <div className="list-header" ref={addPanelRef}>
+          <h2>服务列表</h2>
+          <button
+            type="button"
+            className="primary add-btn"
+            aria-expanded={addOpen}
+            onClick={() =>
+              setAddOpen((value) => {
+                if (!value) {
+                  setFormError('');
+                }
+                return !value;
+              })
+            }
+          >
+            添加三维服务
+          </button>
 
-      <section className="panel-section">
-        <h2>底图与地表</h2>
-        <div className="segment">
-          <button
-            type="button"
-            className={baseMap === 'img' ? 'active' : ''}
-            onClick={() => onBaseMapChange('img')}
-          >
-            影像
-          </button>
-          <button
-            type="button"
-            className={baseMap === 'vec' ? 'active' : ''}
-            onClick={() => onBaseMapChange('vec')}
-          >
-            矢量
-          </button>
+          {addOpen && (
+            <div className="flyout-panel">
+              <div className="flyout-header">
+                <h2>添加三维服务</h2>
+                <button type="button" className="ghost" onClick={() => setAddOpen(false)}>
+                  关闭
+                </button>
+              </div>
+              <form className="service-form" onSubmit={handleAdd}>
+                <label className="field">
+                  <span>服务名称</span>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="例如：B2F 管廊 BIM"
+                    autoFocus
+                  />
+                </label>
+                <label className="field">
+                  <span>服务地址</span>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(event) => setUrl(event.target.value)}
+                    placeholder="http://host/path/tileset.json"
+                    spellCheck={false}
+                  />
+                </label>
+                {formError && <p className="hint warn">{formError}</p>}
+                <button type="submit" className="primary">
+                  添加并加载
+                </button>
+              </form>
+            </div>
+          )}
         </div>
-        <label className="field">
-          <span>地表透明度 {globeTransparency}%</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={globeTransparency}
-            onChange={(event) => onTransparencyChange(Number(event.target.value))}
-          />
-        </label>
-        <p className="hint">调高透明度可透过地表查看地下管廊、BIM 等服务，相机也可进入地下。</p>
-      </section>
-
-      <section className="panel-section">
-        <h2>三维服务</h2>
-        <form className="service-form" onSubmit={handleAdd}>
-          <label className="field">
-            <span>服务名称</span>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="例如：B2F 管廊 BIM"
-            />
-          </label>
-          <label className="field">
-            <span>服务地址</span>
-            <input
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="http://host/path/tileset.json"
-              spellCheck={false}
-            />
-          </label>
-          {formError && <p className="hint warn">{formError}</p>}
-          <button type="submit" className="primary">
-            添加并加载
-          </button>
-        </form>
-
         <ul className="service-list">
           {services.length === 0 && <li className="empty">尚未添加三维服务</li>}
           {services.map((service) => {
