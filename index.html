@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D Tiles 预览系统</title>
-    <!-- 必须在加载 Cesium 模块前指定静态资源目录，避免中文路径或打包后 Workers 找不到 -->
+    <!-- 必须在加载 Cesium 模块前指定静态资源目录，避免打包后 Workers 找不到 -->
     <script>
-      window.CESIUM_BASE_URL = '/cesiumStatic/';
+      window.CESIUM_BASE_URL = '%BASE_URL%cesiumStatic/';
     </script>
   </head>
   <body>

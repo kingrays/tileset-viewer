@@ -36,6 +36,16 @@ pnpm preview  # 预览生产构建（同样带瓦片代理）
 
 也可用 `npm` 或 `yarn` 安装依赖后执行对应脚本。
 
+## GitHub Pages
+
+GitHub Pages 只能托管静态文件，不能编译 `src/main.tsx`。请用 Actions 发布 `pnpm build` 后的 `dist`：
+
+1. 将本仓库推送到 `main`（工作流见 `.github/workflows/deploy-pages.yml`）。
+2. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**（不要选 Deploy from a branch 的源码根目录）。
+3. 等待 workflow 成功后访问：`https://<用户名>.github.io/tileset-viewer/`。
+
+生产环境没有瓦片代理，远程 `tileset.json` 必须自行允许 CORS，否则浏览器会拦截。
+
 ## 使用说明
 
 1. 右下角打开 **天地图 Key**，填入 [天地图控制台](https://console.tianditu.gov.cn/) 申请的 tk 并保存。未配置时底图不会显示，三维服务仍可加载。
