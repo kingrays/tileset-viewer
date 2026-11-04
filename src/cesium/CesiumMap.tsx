@@ -7,17 +7,12 @@ import {
   HeadingPitchRange,
   Math as CesiumMath,
   Viewer,
-} from 'cesium';
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from 'react';
-import type { BaseMapType, ServiceStatus, TilesetService } from '../types';
-import { applyGlobeTransparency } from './globeTransparency';
-import { toProxyUrl } from './proxyUrl';
-import { applyTiandituLayers } from './tianditu';
+} from "cesium";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import type { BaseMapType, ServiceStatus, TilesetService } from "../types";
+import { applyGlobeTransparency } from "./globeTransparency";
+import { toProxyUrl } from "./proxyUrl";
+import { applyTiandituLayers } from "./tianditu";
 
 export interface CesiumMapHandle {
   flyToService: (id: string) => void;
@@ -87,30 +82,36 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(
       });
 
       applyPixelRatio(viewer);
-      const unsubscribePixelRatio = subscribePixelRatio(() => applyPixelRatio(viewer));
+      const unsubscribePixelRatio = subscribePixelRatio(() =>
+        applyPixelRatio(viewer),
+      );
       viewer.scene.postProcessStages.fxaa.enabled = true;
 
-      viewer.scene.globe.baseColor = Color.fromCssColorString('#243044');
-      viewer.scene.backgroundColor = Color.fromCssColorString('#070b12');
+      viewer.scene.globe.baseColor = Color.fromCssColorString("#243044");
+      viewer.scene.backgroundColor = Color.fromCssColorString("#070b12");
       viewer.scene.globe.enableLighting = false;
       viewer.scene.light.intensity = 2.2;
       viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1;
       viewer.scene.screenSpaceCameraController.enableCollisionDetection = false;
       applyGlobeTransparency(viewer, 0);
 
-      const ionLogo = viewer.container.querySelector('.cesium-credit-logoContainer');
+      const ionLogo = viewer.container.querySelector(
+        ".cesium-credit-logoContainer",
+      );
       if (ionLogo instanceof HTMLElement) {
-        ionLogo.style.display = 'none';
+        ionLogo.style.display = "none";
       }
 
       viewer.camera.setView({
         destination: Cartesian3.fromDegrees(108.0, 34.0, 4_500_000),
       });
 
-      viewer.homeButton.viewModel.command.beforeExecute.addEventListener((event) => {
-        event.cancel = true;
-        flyHome(viewer, recordsRef.current);
-      });
+      viewer.homeButton.viewModel.command.beforeExecute.addEventListener(
+        (event) => {
+          event.cancel = true;
+          flyHome(viewer, recordsRef.current);
+        },
+      );
 
       viewerRef.current = viewer;
       if (import.meta.env.DEV) {
@@ -177,13 +178,13 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(
         }
 
         if (!service.visible) {
-          onStatusChangeRef.current(service.id, { state: 'idle' });
+          onStatusChangeRef.current(service.id, { state: "idle" });
           return;
         }
 
         const token = (loadTokenRef.current.get(service.id) ?? 0) + 1;
         loadTokenRef.current.set(service.id, token);
-        onStatusChangeRef.current(service.id, { state: 'loading' });
+        onStatusChangeRef.current(service.id, { state: "loading" });
 
         void loadTileset(viewer, service)
           .then((tileset) => {
@@ -194,14 +195,16 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(
               viewer.scene.primitives.remove(tileset);
               return;
             }
-            const latest = servicesRef.current.find((item) => item.id === service.id);
+            const latest = servicesRef.current.find(
+              (item) => item.id === service.id,
+            );
             if (!latest) {
               viewer.scene.primitives.remove(tileset);
               return;
             }
             records.set(service.id, { url: service.url, tileset });
             tileset.show = latest.visible;
-            onStatusChangeRef.current(service.id, { state: 'ready' });
+            onStatusChangeRef.current(service.id, { state: "ready" });
             if (latest.visible) {
               flyToTileset(viewer, tileset);
             }
@@ -210,9 +213,9 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(
             if (loadTokenRef.current.get(service.id) !== token) {
               return;
             }
-            const message = error instanceof Error ? error.message : '未知错误';
+            const message = error instanceof Error ? error.message : "未知错误";
             onStatusChangeRef.current(service.id, {
-              state: 'error',
+              state: "error",
               message: `加载失败：${message}`,
             });
           });
@@ -224,8 +227,9 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(
 );
 
 async function loadTileset(viewer: Viewer, service: TilesetService) {
+  // SSE 越小越清晰（更易细化到高精度瓦片），过大时倾斜摄影会像「融化」
   const tileset = await Cesium3DTileset.fromUrl(toProxyUrl(service.url), {
-    maximumScreenSpaceError: 16,
+    maximumScreenSpaceError: 1,
   });
   viewer.scene.primitives.add(tileset);
   return tileset;
@@ -267,7 +271,7 @@ function applyPixelRatio(viewer: Viewer) {
     return;
   }
   const dpr = window.devicePixelRatio || 1;
-  viewer.resolutionScale = dpr > 2 ? 2 / dpr : 1;
+  viewer.resolutionScale = Math.min(dpr, 1);
 }
 
 /** 在不同缩放显示器之间拖动窗口时重新匹配分辨率 */
@@ -275,10 +279,10 @@ function subscribePixelRatio(onChange: () => void): () => void {
   let media = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
   const handleChange = () => {
     onChange();
-    media.removeEventListener('change', handleChange);
+    media.removeEventListener("change", handleChange);
     media = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
-    media.addEventListener('change', handleChange);
+    media.addEventListener("change", handleChange);
   };
-  media.addEventListener('change', handleChange);
-  return () => media.removeEventListener('change', handleChange);
+  media.addEventListener("change", handleChange);
+  return () => media.removeEventListener("change", handleChange);
 }
