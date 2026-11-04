@@ -80,11 +80,11 @@ http://host/a/tileset.json
 
 数据保存在当前浏览器，不会上传：
 
-| Key | 内容 |
-| --- | --- |
-| `tileset-viewer:tianditu-key` | 天地图 tk |
-| `tileset-viewer:services` | 服务列表 |
-| `tileset-viewer:settings` | 底图类型、地表透明度 |
+| Key                           | 内容                 |
+| ----------------------------- | -------------------- |
+| `tileset-viewer:tianditu-key` | 天地图 tk            |
+| `tileset-viewer:services`     | 服务列表             |
+| `tileset-viewer:settings`     | 底图类型、地表透明度 |
 
 ## 目录结构
 

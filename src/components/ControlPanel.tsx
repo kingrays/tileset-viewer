@@ -150,7 +150,11 @@ export function ControlPanel({
                   >
                     定位
                   </button>
-                  <button type="button" className="danger" onClick={() => onRemoveService(service.id)}>
+                  <button
+                    type="button"
+                    className="danger"
+                    onClick={() => onRemoveService(service.id)}
+                  >
                     删除
                   </button>
                 </div>

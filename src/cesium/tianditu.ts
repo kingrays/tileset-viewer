@@ -14,11 +14,7 @@ function createTiandituProvider(layer: string, token: string) {
 }
 
 /** 按当前 Key 与底图类型刷新天地图影像/注记图层 */
-export function applyTiandituLayers(
-  viewer: Viewer,
-  token: string,
-  baseMap: BaseMapType,
-): void {
+export function applyTiandituLayers(viewer: Viewer, token: string, baseMap: BaseMapType): void {
   const layers = viewer.imageryLayers;
   for (let i = layers.length - 1; i >= 0; i -= 1) {
     const layer = layers.get(i);
