@@ -11,7 +11,7 @@ import {
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { BaseMapType, ServiceStatus, TilesetService } from '../types';
 import { applyGlobeTransparency } from './globeTransparency';
-import { toProxyUrl } from './proxyUrl';
+import { getMixedContentBlockReason, resolveProxyBase, toProxyUrl } from './proxyUrl';
 import { applyTiandituLayers } from './tianditu';
 
 export interface CesiumMapHandle {
@@ -23,16 +23,20 @@ interface CesiumMapProps {
   baseMap: BaseMapType;
   services: TilesetService[];
   globeTransparency: number;
+  /** 生产环境可选 HTTPS 瓦片代理根地址 */
+  tilesetProxyBase: string;
   onStatusChange: (id: string, status: ServiceStatus) => void;
 }
 
 interface TilesetRecord {
   url: string;
+  /** 加载时实际使用的代理根，变更后需重新加载 */
+  proxyKey: string;
   tileset: Cesium3DTileset;
 }
 
 export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(function CesiumMap(
-  { tiandituKey, baseMap, services, globeTransparency, onStatusChange },
+  { tiandituKey, baseMap, services, globeTransparency, tilesetProxyBase, onStatusChange },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -157,9 +161,11 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(function Ce
       }
     });
 
+    const proxyKey = resolveProxyBase(tilesetProxyBase);
+
     services.forEach((service) => {
       const existing = records.get(service.id);
-      if (existing && existing.url !== service.url) {
+      if (existing && (existing.url !== service.url || existing.proxyKey !== proxyKey)) {
         viewer.scene.primitives.remove(existing.tileset);
         records.delete(service.id);
       }
@@ -175,11 +181,20 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(function Ce
         return;
       }
 
+      const mixedContentReason = getMixedContentBlockReason(service.url, tilesetProxyBase);
+      if (mixedContentReason) {
+        onStatusChangeRef.current(service.id, {
+          state: 'error',
+          message: mixedContentReason,
+        });
+        return;
+      }
+
       const token = (loadTokenRef.current.get(service.id) ?? 0) + 1;
       loadTokenRef.current.set(service.id, token);
       onStatusChangeRef.current(service.id, { state: 'loading' });
 
-      void loadTileset(viewer, service)
+      void loadTileset(viewer, service, tilesetProxyBase)
         .then((tileset) => {
           if (loadTokenRef.current.get(service.id) !== token || viewer.isDestroyed()) {
             viewer.scene.primitives.remove(tileset);
@@ -190,7 +205,7 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(function Ce
             viewer.scene.primitives.remove(tileset);
             return;
           }
-          records.set(service.id, { url: service.url, tileset });
+          records.set(service.id, { url: service.url, proxyKey, tileset });
           tileset.show = latest.visible;
           onStatusChangeRef.current(service.id, { state: 'ready' });
           if (latest.visible) {
@@ -208,14 +223,14 @@ export const CesiumMap = forwardRef<CesiumMapHandle, CesiumMapProps>(function Ce
           });
         });
     });
-  }, [services]);
+  }, [services, tilesetProxyBase]);
 
   return <div ref={containerRef} className="cesium-container" />;
 });
 
-async function loadTileset(viewer: Viewer, service: TilesetService) {
+async function loadTileset(viewer: Viewer, service: TilesetService, tilesetProxyBase: string) {
   // SSE 越小越清晰（更易细化到高精度瓦片），过大时倾斜摄影会像「融化」
-  const tileset = await Cesium3DTileset.fromUrl(toProxyUrl(service.url), {
+  const tileset = await Cesium3DTileset.fromUrl(toProxyUrl(service.url, tilesetProxyBase), {
     maximumScreenSpaceError: 1,
   });
   viewer.scene.primitives.add(tileset);

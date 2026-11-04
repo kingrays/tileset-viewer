@@ -95,6 +95,7 @@ export default function App() {
         baseMap={settings.baseMap}
         services={services}
         globeTransparency={settings.globeTransparency}
+        tilesetProxyBase={settings.tilesetProxyBase}
         onStatusChange={handleStatusChange}
       />
       <ControlPanel
@@ -118,6 +119,8 @@ export default function App() {
         onBaseMapChange={(value: BaseMapType) => updateSettings({ baseMap: value })}
         globeTransparency={settings.globeTransparency}
         onTransparencyChange={(value) => updateSettings({ globeTransparency: value })}
+        tilesetProxyBase={settings.tilesetProxyBase}
+        onTilesetProxyBaseChange={(value) => updateSettings({ tilesetProxyBase: value })}
         visibleCount={visibleHint}
       />
     </div>

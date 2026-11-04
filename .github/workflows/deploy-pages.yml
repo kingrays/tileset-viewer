@@ -41,6 +41,9 @@ jobs:
         env:
           # 项目站地址为 https://<user>.github.io/<repo>/
           BASE_PATH: /${{ github.event.repository.name }}/
+          # 可选：仓库 Settings → Variables 配置 VITE_TILESET_PROXY_BASE
+          # 例如 https://tileset-proxy.xxx.workers.dev（部署 workers/tileset-proxy.js）
+          VITE_TILESET_PROXY_BASE: ${{ vars.VITE_TILESET_PROXY_BASE }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -7,6 +7,7 @@ const KEY_SETTINGS = 'tileset-viewer:settings';
 const DEFAULT_SETTINGS: AppSettings = {
   baseMap: 'img',
   globeTransparency: 0,
+  tilesetProxyBase: '',
 };
 
 function readJson<T>(key: string, fallback: T): T {
@@ -43,6 +44,8 @@ export function loadSettings(): AppSettings {
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
+    // 旧版本地数据可能没有该字段
+    tilesetProxyBase: stored.tilesetProxyBase?.trim() ?? DEFAULT_SETTINGS.tilesetProxyBase,
   };
 }
 
